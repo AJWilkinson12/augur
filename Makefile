@@ -3,6 +3,7 @@
 default:
 	@ echo "Installation Commands:"
 	@ echo "    install                         Installs Augur's full stack for production"
+	@ echo "    wizard                          Install Augur and launch the graphical setup wizard"
 	@ echo "    clean                           Removes potentially troublesome compiled files"
 	@ echo "    rebuild                         Removes build/compiled files & binaries and reinstalls the project"
 	@ echo
@@ -15,26 +16,27 @@ default:
 	@ echo "Testing Commands:"
 	@ echo "    test-data                       Start the testing dataset Docker database"
 	@ echo "    test                            Runs all tests"
-	@ echo "    test-application                Runs all application unit tests (including metrics)"
-	@ echo "    test-workers                    Run all worker unit tests"
-	@ echo "    test-metric-routes              Run all metrics API tests"
+	@ echo "    test-api                        Run all API tests"
 	@ echo
 	@ echo "Documentation Commands:"
 	@ echo "    docs                            Generates the documentation"
 	@ echo "    docs-view                       Generates the documentation, then opens it for local viewing"
 
+# @ echo "    test-application                Runs all application unit tests (including metrics)"
+# @ echo "    test-workers                    Run all worker unit tests"
+
 
 #
 #  Installation
 #
-.PHONY: install install-dev
+.PHONY: install
 .PHONY: install-spdx install-spdx-sudo install-augur-sbom
 .PHONY: clean rebuild
 install:
-	@ ./scripts/install/install.sh prod
-
-install-dev:
 	@ ./scripts/install/install.sh dev
+
+wizard:
+	@ ./scripts/install/install.sh graphical
 
 install-spdx:
 	@ ./scripts/install/install-spdx.sh
@@ -49,11 +51,7 @@ clean:
 	@ scripts/control/clean.sh
 
 rebuild:
-	@ scripts/control/rebuild.sh prod
-
-rebuild-dev:
 	@ scripts/control/rebuild.sh dev
-
 
 #
 #  Development
@@ -76,6 +74,18 @@ db:
 	@ docker run -p 5434:5432 --name augur_database augurlabs/augur:database
 
 
+lint:
+	@ pylint augur
+lint-count:
+	@ pylint augur | wc -l
+lint-docs:
+	@ pylint augur | grep docstring
+lint-docs-missing:
+	@ pylint augur | grep docstring | wc -l
+
+lint-github-tasks-count:
+	@ pylint augur | grep augur/tasks/github/ | wc -l
+
 #
 # Testing
 #
@@ -86,19 +96,32 @@ test-data:
 	@ - docker rm augur_test_data
 	@ docker run -p 5434:5432 --name augur_test_data augurlabs/augur:test_data@sha256:71da12114bf28584a9a64ede2fac0cbc8dffc8e2f4a2c61231206e2f82201c2f
 
-test: test-application test-metric-routes test-workers
+test:
+	# @ pytest tests/test_tasks/test_github_tasks/
+	@ python3 tests/start_server.py
+	@ pytest tests/test_metrics/test_metrics_functionality/ tests/test_routes/test_api_functionality/ tests/test_tasks/ tests/test_applicaton/ 
+	@ python3 tests/stop_server.py
 
-test-application:
-	@ bash -c 'tox -e py-application'
+test-api:
+	@ python3 tests/start_server.py
+	@ pytest tests/test_metrics/test_metrics_functionality/ tests/test_routes/test_api_functionality/
+	@ python3 tests/stop_server.py
+	
 
-test-workers:
-	@ bash -c 'tox -e py-workers'
 
-test-metric-routes:
-	@ bash -c 'tox -e py-metric-routes'
+# test-application:
+# 	@ bash -c 'tox -e py-application'
 
-test-python-versions:
-	@ bash -c 'tox -e ALL'
+#Worker's tests need a database from docker
+#To use the docker daemon you need to be root so sudo is needed.
+# test-workers:
+# 	@ bash -c 'sudo tox -e py-workers'
+
+# test-metric-routes:
+# 	@ bash -c 'tox -e py-metric-routes'
+
+# test-python-versions:
+# 	@ bash -c 'tox -e ALL'
 
 
 #
@@ -120,16 +143,16 @@ docs-view: docs
 
 
 compose-run:
-	@ docker-compose -f docker-compose.yml up --build
+	@ docker compose -f docker-compose.yml up --build
 
 compose-run-database:
 	@ echo "**************************************************************************"
 	@ echo "Make sure there are no database credentials in docker_env.txt!"
 	@ echo "**************************************************************************"
 	@ echo
-	@ docker-compose -f docker-compose.yml -f database-compose.yml up --build
+	@ docker compose -f docker-compose.yml -f database-compose.yml up --build
 
-docker-build: docker-build-backend docker-build-frontend docker-build-database
+docker-build: docker-build-backend docker-build-frontend docker-build-database docker-build-rabbitmq
 
 docker-build-backend:
 	@ docker build -t augurlabs/augur:backend -f util/docker/backend/Dockerfile .
@@ -140,18 +163,25 @@ docker-build-frontend:
 docker-build-database:
 	@ docker build -t augurlabs/augur:database -f util/docker/database/Dockerfile .
 
+docker-build-rabbitmq:
+	@ docker build -t augurlabs/augur:rabbitmq -f util/docker/rabbitmq/Dockerfile .
 
 docker-run-backend:
 	@ - docker stop augur_backend
 	@ - docker rm augur_backend
-	@ docker run -p 5000:5000 --name augur_backend --env-file docker_env.txt augurlabs/augur:backend
+	docker run -p 5000:5000 --name augur_backend --env-file docker_env.txt augurlabs/augur:backend
 
 docker-run-frontend:
 	@ - docker stop augur_frontend
 	@ - docker rm augur_frontend
-	@ docker run -p 8080:8080 --name augur_frontend augurlabs/augur:frontend
+	docker run -p 8080:8080 --name augur_frontend augurlabs/augur:frontend
 
 docker-run-database:
 	@ - docker stop augur_database
 	@ - docker rm augur_database
-	@ docker run -p 5434:5432 --name augur_database augurlabs/augur:database
+	docker run -p 5434:5432 --name augur_database augurlabs/augur:database
+
+docker-run-rabbitmq:
+	@ - docker stop augur_rabbitmq
+	@ - docker rm augur_rabbitmq
+	docker run -p 5434:5432 --name augur_rabbitmq augurlabs/augur:rabbitmq

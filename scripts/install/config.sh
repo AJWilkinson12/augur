@@ -6,181 +6,239 @@ Your choice: "
 
 target=$1
 
-function get_api_key_and_repo_path() {
-  echo
-  echo "Please provide a valid GitHub API key."
-  echo "For more information on how to create the key, visit:"
-  echo "https://oss-augur.readthedocs.io/en/dev/getting-started/installation.html#backend"
-  echo "** This is required for Augur to gather data ***"
-  read -p "GitHub API Key: " github_api_key
-  echo
+function blank_confirm() {
+    if [ -z "${1}" ]; then
+        echo "Bad usage of blank_confirm at:"
+        caller
+        return
+    fi
 
-  echo
-  echo "Please provide a valid GitLab API key."
-  echo "For more information on how to create the key, visit:"
-  echo "https://oss-augur.readthedocs.io/en/dev/getting-started/installation.html#backend"
-  echo "** This is required for Augur to gather data ***"
-  read -p "GitLab API Key: " gitlab_api_key
-  echo
+    confirm_placeholder=${!1}
 
-  echo "The Facade data collection worker will clone repositories to this machine to run its analysis."
-  echo "Would you like to clone to an existing directory, or create a new one?"
-
-  select create_facade_repo in "Use an existing directory" "Create a new directory"
-  do
-    case $create_facade_repo in
-      "Use an existing directory" )
-          echo "** You MUST use an absolute path. Variable expansion is currently not supported.**"
-          read -p "Facade repo path: " facade_repo_directory
-          echo
-
-
-          while [[ ! -d "$facade_repo_directory" ]]; do
-            echo "That directory does not exist."
-            read -p "Facade repo path: " facade_repo_directory
-            echo
-          done
-
-          break
-        ;;
-      "Create a new directory" )
-          echo "** You MUST use an absolute path. Variable expansion is currently not supported.**"
-          read -p "Desired directory name: " facade_repo_directory
-          echo
-
-          if [[ -d "$facade_repo_directory" ]]; then
-            echo "That directory already exists. Using the given directory."
-            echo
-          else
-            mkdir "$facade_repo_directory"
-            echo "Directory created."
-            echo
-          fi
-
-          break
-        ;;
-    esac
-  done
-
-  [[ "${facade_repo_directory}" != */ ]] && facade_repo_directory="${facade_repo_directory}/"
-
+    while [ -z "${confirm_placeholder}" ]; do
+        echo "You entered a blank line, are you sure?"
+        read -p "enter 'yes' to continue, or enter the intended value: " confirm_placeholder
+        case "$confirm_placeholder" in
+        [yY][eE][sS] | [yY][eE] | [yY])
+            return
+            ;;
+        *)
+            continue
+            ;;
+        esac
+    done
+    printf -v "$1" "%s" $confirm_placeholder
 }
 
-function set_db_credentials() {
-
-  install_locally=${1-false}
-
-  read -p "Database: " db_name
-  read -p "User: " db_user
-  read -s -p "Password: " password
-  echo
-
-  if [[ $install_locally == 'false' ]]; then
-    read -p "Host: " host
-    read -p "Port: " port
-  fi
-
-  get_api_key_and_repo_path
-
-  save_credentials
-}
-
-
-function save_credentials() {
-
-  echo
-  echo "**********************************"
-  echo "Generating configuration file..."
-  echo "**********************************"
-  echo
-
-  cmd=( augur config init --db_name $db_name --db_host $host --db_port $port --db_user $db_user --db_password $password --github_api_key $github_api_key --gitlab_api_key $gitlab_api_key --facade_repo_directory $facade_repo_directory )
-
-  if [[ $target == *"dev"* ]]; then
-    cmd+=( --write-to-src )
-  fi
-
-  "${cmd[@]}"
-
-  augur config init-frontend
-  augur db check-pgpass
-
-}
-
-function create_db_schema() {
-    augur db create-schema
-
+function get_github_username() {
     echo
-    echo "**********************************"
-    echo "Schema created."
-    echo "**********************************"
+    echo "Please provide your username for Github."
+    echo "** This is required for Augur to clone Github repos ***"
+    read -p "GitHub username: " github_username
+    blank_confirm github_username
     echo
 }
 
+function get_github_api_key() {
+    echo
+    echo "Please provide a valid GitHub API key."
+    echo "For more information on how to create the key, visit:"
+    echo "https://oss-augur.readthedocs.io/en/dev/getting-started/installation.html#backend"
+    echo "** This is required for Augur to gather data ***"
+    read -p "GitHub API Key: " github_api_key
+    blank_confirm github_api_key
+    echo
+}
 
+function get_gitlab_username() {
+    echo
+    echo "Please provide your username for GitLab."
+    echo "** This is required for Augur to clone GitLab repos ***"
+    read -p "GitLab username: " gitlab_username
+    blank_confirm gitlab_username
+    echo
+}
+
+function get_gitlab_api_key() {
+    echo
+    echo "Please provide a valid GitLab API key."
+    echo "For more information on how to create the key, visit:"
+    echo "https://oss-augur.readthedocs.io/en/dev/getting-started/installation.html#backend"
+    echo "** This is required for Augur to gather data ***"
+    read -p "GitLab API Key: " gitlab_api_key
+    blank_confirm gitlab_api_key
+    echo
+}
+
+function get_facade_repo_path() {
+
+    echo "The Facade data collection worker will clone repositories to this machine to run its analysis."
+    echo "Please select a new or existing directory for the Facade worker to use:"
+    echo
+
+    while true; do
+        read -e -p "Facade worker directory: " facade_repo_directory
+        blank_confirm facade_repo_directory
+
+        facade_repo_directory=$(realpath $facade_repo_directory)
+        echo
+
+        # if ! [ -w $facade_repo_directory/.git-credentials ]; then
+        #     echo "User $(whoami) does not have permission to write to that location"
+        #     echo "Please select another location"
+        #     continue
+        # fi
+
+        # Check if the file exists and create it if it doesn't
+        if [ ! -f "$facade_repo_directory/.git-credentials" ]; then
+            echo "File .git-credentials does not exist. Creating it..."
+            touch "$facade_repo_directory/.git-credentials"
+        fi
+
+        # Check for write permissions
+        if ! [ -w "$facade_repo_directory/.git-credentials" ]; then
+            echo "User $(whoami) does not have permission to write to $facade_repo_directory/.git-credentials"
+            echo "Please select another location"
+            continue
+        else
+            echo "Permission check passed for $facade_repo_directory/.git-credentials"
+        fi
+
+        if [[ -d "$facade_repo_directory" ]]; then
+            read -r -p "That directory already exists. Use it? [Y/n]: " facade_response
+            case "$facade_response" in
+            [nN][oO] | [nN])
+                continue
+                ;;
+            *)
+                break
+                ;;
+            esac
+        else
+            read -r -p "That directory does not exist. Create it? [Y/n]: " facade_response
+            case "$facade_response" in
+            [nN][oO] | [nN])
+                continue
+                ;;
+            *)
+                mkdir "$facade_repo_directory"
+                echo "Directory created."
+                break
+                ;;
+            esac
+        fi
+    done
+
+    [[ "${facade_repo_directory}" != */ ]] && facade_repo_directory="${facade_repo_directory}/"
+}
+
+function get_rabbitmq_broker_url() {
+    echo
+    echo "Please provide your rabbitmq broker url."
+    echo "** This is required for Augur to run all collection tasks. ***"
+    read -p "broker_url: " rabbitmq_conn_string
+    blank_confirm rabbitmq_conn_string
+    echo
+}
+
+function create_config() {
+
+    if [[ -z "${AUGUR_GITHUB_API_KEY}" ]]; then
+        get_github_api_key
+    else
+        echo
+        echo "Found AUGUR_GITHUB_API_KEY environment variable with value $AUGUR_GITHUB_API_KEY"
+        echo "Using it in the config"
+        echo "Please unset AUGUR_GITHUB_API_KEY if you would like to be prompted for a github api key"
+        github_api_key=$AUGUR_GITHUB_API_KEY
+        echo
+    fi
+
+    if [[ -z "${AUGUR_GITHUB_USERNAME}" ]]; then
+        get_github_username
+    else
+        echo
+        echo "Found AUGUR_GITHUB_USERNAME environment variable with value $AUGUR_GITHUB_USERNAME"
+        echo "Using it in the config"
+        echo "Please unset AUGUR_GITHUB_USERNAME if you would like to be prompted for a github username"
+        github_username=$AUGUR_GITHUB_USERNAME
+        echo
+    fi
+
+    if [[ -z "${AUGUR_GITLAB_API_KEY}" ]]; then
+        get_gitlab_api_key
+    else
+        echo
+        echo "Found AUGUR_GITLAB_API_KEY environment variable with value $AUGUR_GITLAB_API_KEY"
+        echo "Using it in the config"
+        echo "Please unset AUGUR_GITLAB_API_KEY if you would like to be prompted for a gitlab api key"
+        gitlab_api_key=$AUGUR_GITLAB_API_KEY
+        echo
+    fi
+
+    if [[ -z "${AUGUR_GITLAB_USERNAME}" ]]; then
+        get_gitlab_username
+    else
+        echo
+        echo "Found AUGUR_GITLAB_USERNAME environment variable with value $AUGUR_GITLAB_USERNAME"
+        echo "Using it in the config"
+        echo "Please unset AUGUR_GITLAB_USERNAME if you would like to be prompted for a gitlab username"
+        gitlab_username=$AUGUR_GITLAB_USERNAME
+        echo
+    fi
+
+    if [[ -z "${AUGUR_FACADE_REPO_DIRECTORY}" ]]; then
+        get_facade_repo_path
+    else
+        echo
+        echo "Found AUGUR_FACADE_REPO_DIRECTORY environment variable with value $AUGUR_FACADE_REPO_DIRECTORY"
+        echo "Using it in the config"
+        echo "IMPORTANT NOTE: This assumes that this directory already exists"
+        echo "Please unset AUGUR_FACADE_REPO_DIRECTORY if you would like to be prompted for the facade repo directory"
+        facade_repo_directory=$AUGUR_FACADE_REPO_DIRECTORY
+        echo
+    fi
+
+    if [[ -z "${RABBITMQ_CONN_STRING}" ]]; then
+        get_rabbitmq_broker_url
+    else
+        echo
+        echo "Found RABBITMQ_CONN_STRING environment variable with value $RABBITMQ_CONN_STRING"
+        echo "Using it in the config"
+        echo "Please unset RABBITMQ_CONN_STRING if you would like to be prompted for the rabbit MQ connection string"
+        rabbitmq_conn_string=$RABBITMQ_CONN_STRING
+        echo
+    fi
+
+    # echo $rabbitmq_conn_string
+    # echo $facade_repo_directory
+    # echo $gitlab_username
+    # echo $gitlab_api_key
+    # echo $github_username
+    # echo $github_api_key
+
+    #special case for docker entrypoint
+    if [ $target = "docker" ]; then
+      cmd=( augur config init --github-api-key $github_api_key --gitlab-api-key $gitlab_api_key --facade-repo-directory $facade_repo_directory --redis-conn-string $redis_conn_string --rabbitmq-conn-string $rabbitmq_conn_string )
+      echo "init with redis $redis_conn_string"
+    else
+      cmd=( augur config init --github-api-key $github_api_key --gitlab-api-key $gitlab_api_key --facade-repo-directory $facade_repo_directory --rabbitmq-conn-string $rabbitmq_conn_string )
+    fi
+
+    #Create and cache credentials for github and gitlab
+    touch $facade_repo_directory/.git-credentials
+
+    echo "https://$github_username:$github_api_key@github.com" > $facade_repo_directory/.git-credentials
+    echo "https://$gitlab_username:$gitlab_api_key@gitlab.com" >> $facade_repo_directory/.git-credentials
+
+    git config --global credential.helper "store --file $facade_repo_directory/.git-credentials"
+    "${cmd[@]}"
+}
 echo
-echo "**********************************"
-echo "Setting up database credentials..."
-echo "**********************************"
+echo "Collecting data for config..."
+create_config
+echo
+echo "Config created"
 echo
 
-echo "Would you like to..."
-install_locally="initialize a new database AND install the schema?"
-install_remotely="connect to an existing empty database and ONLY install the schema?"
-already_installed="connect to a database with the schema already installed?"
-
-select install_location in "$install_locally" "$install_remotely" "$already_installed"
-do
-  case $install_location in
-    $install_locally )
-        echo "Please enter the credentials for the default (or maintenance) user for your instance."
-        echo "These will be used to log in to the database so that Augur can initalize a new database and install the schema for you."
-
-        read -p "Default DB name: " default_db_name
-        read -p "Default user: " default_user
-        read -p "Default user's password: " default_password
-
-        echo
-        echo "Please enter the host on which your instance is running, and the port it is listening on."
-        read -p "Host: " host
-        read -p "Port: " port
-        echo
-
-        echo
-        echo "Now, please choose the credentials for the database you would create."
-        echo "If you are not sure to put , we recommend naming both your database and user as augur."
-        echo "The choice of password if up to you; just make sure you don't forget it."
-        echo
-        set_db_credentials true
-
-        augur db init-database \
-        --default-db-name $default_db_name \
-        --default-user $default_user \
-        --default-password $default_password \
-        --target-db-name $db_name \
-        --target-user $db_user \
-        --target-password $password \
-        --host $host \
-        --port $port
-
-        create_db_schema
-        echo "DB created."
-        break
-      ;;
-    $install_remotely )
-        echo "Please enter the credentials for the database."
-        set_db_credentials
-        # https://www.youtube.com/watch?v=rs9wuaVV33I
-        create_db_schema
-        break
-      ;;
-    $already_installed )
-        echo "Please enter the credentials for the database you have created."
-        set_db_credentials
-        break
-      ;;
-  esac
-done
-
-
-
+# config_prompt

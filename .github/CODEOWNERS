@@ -1,30 +1,32 @@
-/augur/cli/ @ccarterlandis
-/augur/metrics/ @ccarterlandis
-/augur/housekeeper/ @gabe-heim
-/augur/server.py @ccarterlandis @gabe-heim
-/augur/application.py @ccarterlandis @gabe-heim
-/augur/routes/ @ccarterlandis @gabe-heim
+/augur/cli/ @sgoggins
+/augur/metrics/ @sgoggins @sgoggins
+/augur/housekeeper/ @sgoggins
+/augur/server.py @sgoggins @sgoggins
+/augur/application.py @sgoggins @sgoggins @sgoggins
+/augur/routes/ @sgoggins @sgoggins @sgoggins
 
-/frontend/ @gabe-heim @sgoggins
+/frontend/ @sgoggins @sgoggins
 
-/schema/ @sgoggins @ccarterlandis
+/schema/ @sgoggins @sgoggins
 
-/workers/ @ccarterlandis @gabe-heim @sgoggins
+/schema/generate @sgoggins 
 
-/README.md @sgoggins @ccarterlandis
-/CONTRIBUTING.md @sgoggins @ccarterlandis
-/LICENSE @sgoggins @ccarterlandis
-/CODE_OF_CONDUCT.md @sgoggins @ccarterlandis
+/workers/ @sgoggins @sgoggins @sgoggins
 
-/tests/ @ccarterlandis
-/util/docker @ccarterlandis
-/scripts/ @ccarterlandis
-/docs/ @ccarterlandis
-/.dockerignore @ccarterlandis
-/.travis.yml @ccarterlandis
-*compose.yml @ccarterlandis
-/readthedocs.yml @ccarterlandis
-/Makefile @ccarterlandis
-/tox.ini @ccarterlandis
-*requirements.txt @ccarterlandis
-/setup.py @ccarterlandis
+/README.md @sgoggins @sgoggins
+/CONTRIBUTING.md @sgoggins @sgoggins
+/LICENSE @sgoggins @sgoggins
+/CODE_OF_CONDUCT.md @sgoggins @sgoggins
+
+/tests/ @sgoggins
+/util/docker @sgoggins
+/scripts/ @sgoggins
+/docs/ @sgoggins
+/.dockerignore @sgoggins
+/.travis.yml @sgoggins
+*compose.yml @sgoggins
+/readthedocs.yml @sgoggins
+/Makefile @sgoggins
+/tox.ini @sgoggins
+*requirements.txt @sgoggins
+/setup.py @sgoggins @sgoggins

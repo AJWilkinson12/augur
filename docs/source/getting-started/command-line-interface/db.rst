@@ -44,7 +44,7 @@ Example usage\:
 
 .. code-block:: bash
 
-  # to retrive the repo groups
+  # to retrieve the repo groups
   $ augur db get-repo-groups
 
   # successful output looks like:
@@ -63,7 +63,7 @@ The ``.csv`` file must have the following format:
 
 .. code::
 
-  <repo_group_id>,<git_repo_url> 
+  <git_repo_url>,<repo_group_id>, 
   ...
 
 where ``<repo_group_id>`` is an **existing** repository group ID, and ``<git_repo_url>`` is the url to the repository's Git repository, e.g. ``https://github.com/chaoss/augur.git``. 
@@ -134,7 +134,7 @@ Example usage\:
 
 ``print-db-version``
 -------------------------
-The ``print-db-version`` command will give the user the current version of the configured database on their system. 
+The ``print-db-version`` command will give user the current version of the configured database on their system. 
 
 Example usage\:
 
@@ -193,4 +193,4 @@ Example usage\:
   $ augur db create-schema
 
 .. note::
-  If this runs sucessfully, you should see a bunch of schema creation commands fly by pretty fast. If everything worked you should see: ``update "augur_operations"."augur_settings" set value = xx where setting = 'augur_data_version';`` at the end.
+  If this runs successfully, you should see a bunch of schema creation commands fly by pretty fast. If everything worked you should see: ``update "augur_operations"."augur_settings" set value = xx where setting = 'augur_data_version';`` at the end.

@@ -1,12 +1,12 @@
 #SPDX-License-Identifier: MIT
-__name__ = "Augur"
+__name__ = "augur"
 __slug__ = "augur"
 __url__ = "https://github.com/chaoss/augur"
 
-__short_description__ = "Python 3 package for free/libre and open-source software community metrics & data collection"
+__short_description__ = "Python 3 package for free/libre and open-source software community metrics, models & data collection"
 
-__version__ = "0.14.0"
-__release__ = "v0.14.0"
+__version__ = "0.76.4"
+__release__ = "v0.76.4 (Pumpkin Core)"
 
 __license__ = "MIT"
-__copyright__ = "CHAOSS & Augurlabs 2020"
+__copyright__ = "University of Missouri, University of Nebraska-Omaha, CHAOSS, Brian Warner & Augurlabs 2112"
